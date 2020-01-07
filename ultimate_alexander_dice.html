@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>FFXIV 絶アレキサンダー サイコロフェーズ</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style type="text/css">
+  body {
+    text-align: center;
+  }
+
+  .canvases {
+    width: 500px;
+    height: 600px;
+    margin: 1em auto;
+    position: relative;
+    border: 2px solid black;
+    background-color: rgb(50, 50, 50);
+  }
+  .canvases canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  #canvas-base { z-index: 1; }
+  #canvas-main { z-index: 2; }
+  #canvas-message {
+    z-index: 3;
+    top: 500px;
+    height: 100px;
+    background-color: whitesmoke;
+  }
+
+  .buttons button:not(:last-child) {
+    margin-right: .5em;
+  }
+  #button-next, #button-prev { display: none; }
+</style>
+
+<script type="text/javascript">
+window.onload = () => {
+  const context = {
+    base: document.getElementById('canvas-base').getContext('2d'),
+    main: document.getElementById('canvas-main').getContext('2d'),
+    message: document.getElementById('canvas-message').getContext('2d'),
+  }
+
+  const margin = 30
+  const pos = {
+    left: margin,
+    top: margin,
+    right: context.main.canvas.width - margin,
+    bottom: context.main.canvas.height - margin,
+    center: { x: context.main.canvas.width / 2, y: context.main.canvas.height / 2 },
+  }
+
+  const calcAngleToPos = (angle, coef, baseX = pos.center.x, baseY = pos.center.y) => {
+    const radius = (pos.bottom - pos.top) / 2
+    const distance = radius * coef
+    const a = Math.PI / 180 * (angle - 90)
+
+    return {
+      x: baseX + distance * Math.cos(a),
+      y: baseY + distance * Math.sin(a),
+    }
+  }
+
+  const animations = [
+    { // index: 0
+      damages: [ 0, 180 ],
+      characters: {
+        1: { angle:   0, coef: 0.15 },
+        2: { angle:  45, coef: 0.15 },
+        3: { angle:  90, coef: 0.15 },
+        4: { angle: 135, coef: 0.15 },
+        5: { angle: 180, coef: 0.15 },
+        6: { angle: 225, coef: 0.15 },
+        7: { angle: 270, coef: 0.15 },
+        8: { angle: 315, coef: 0.15 },
+      },
+      message: { text: '中央集合からスタート', size: 30 },
+    },
+    { // index: 1
+      damages: [ 45, 225 ],
+      characters: {
+        1: { angle: 175, coef: 0.7 },
+        2: { angle: 160, coef: 0.8 },
+        3: { angle: 355, coef: 0.7 },
+        4: { angle: 340, coef: 0.8 },
+        5: { angle: 330, coef: 0.7 },
+        6: { angle: 325, coef: 0.8 },
+        7: { angle: 315, coef: 0.7 },
+        8: { angle: 310, coef: 0.8 },
+      },
+      message: { text: '①②は南方向、他は北方向へ', size: 30 },
+    },
+    { // index: 2
+      damages: [ 90, 270 ],
+      characters: {
+        1: { angle: 220, coef: 0.7 },
+        2: { angle: 205, coef: 0.8 },
+        3: { angle:  40, coef: 0.7 },
+        4: { angle:  25, coef: 0.8 },
+        5: { angle:  15, coef: 0.7 },
+        6: { angle:  10, coef: 0.8 },
+        7: { angle:   0, coef: 0.7 },
+        8: { angle: 355, coef: 0.8 },
+      },
+      message: { text: 'AoEを追いかけるように時計回りで移動', size: 26 },
+    },
+    { // index: 3
+      damages: [ 135, 315 ],
+      characters: {
+        1: { angle: 265, coef: 0.7 },
+        2: { angle: 250, coef: 0.8 },
+        3: { angle:  85, coef: 0.7 },
+        4: { angle:  70, coef: 0.8 },
+        5: { angle:  60, coef: 0.7 },
+        6: { angle:  55, coef: 0.8 },
+        7: { angle:  45, coef: 0.7 },
+        8: { angle:  40, coef: 0.8 },
+      },
+      enemy: 258,
+      message: { text: '人がいない方向にチェイサーの攻撃を捨てる', size: 24 },
+    },
+    { // index: 4
+      damages: [ 'center' ],
+      characters: {
+        1: { angle: 265, coef: 0.55 },
+        2: { angle: 255, coef: 0.6 },
+        3: { angle: 130, coef: 0.7 },
+        4: { angle: 115, coef: 0.8 },
+        5: { angle:  60, coef: 0.55 },
+        6: { angle:  55, coef: 0.65 },
+        7: { angle:  45, coef: 0.55 },
+        8: { angle:  40, coef: 0.65 },
+      },
+      message: { text: '③④以外は中央集合', size: 30 },
+    },
+    { // index: 5
+      damages: [ 0, 180 ],
+      characters: {
+        1: { angle: 120, coef: 0.2 },
+        2: { angle:  90, coef: 0.1 },
+        3: { angle: 130, coef: 0.7 },
+        4: { angle: 115, coef: 0.8 },
+        5: { angle: 300, coef: 0.45 },
+        6: { angle: 285, coef: 0.35 },
+        7: { angle: 120, coef: 0.45 },
+        8: { angle: 105, coef: 0.35 },
+      },
+      enemy: 123,
+      message: { text: '⑤⑥は駆け抜けて、他は③④方向へ', size: 28 },
+    },
+    { // index: 6
+      damages: [ 45, 225 ],
+      characters: {
+        1: { angle: 150, coef: 0.7 },
+        2: { angle: 145, coef: 0.8 },
+        3: { angle: 135, coef: 0.7 },
+        4: { angle: 130, coef: 0.8 },
+        5: { angle: 355, coef: 0.7 },
+        6: { angle: 340, coef: 0.8 },
+        7: { angle: 175, coef: 0.7 },
+        8: { angle: 160, coef: 0.8 },
+      },
+      message: { text: '⑦⑧が受ける準備をするので集団の先頭に移動', size: 22 },
+    },
+    { // index: 7
+      damages: [ 90, 270 ],
+      characters: {
+        1: { angle: 195, coef: 0.7 },
+        2: { angle: 190, coef: 0.8 },
+        3: { angle: 180, coef: 0.7 },
+        4: { angle: 175, coef: 0.8 },
+        5: { angle:  40, coef: 0.7 },
+        6: { angle:  25, coef: 0.8 },
+        7: { angle: 220, coef: 0.7 },
+        8: { angle: 205, coef: 0.8 },
+      },
+      enemy: 33,
+      message: { text: '人がいない方向にチェイサーの攻撃を捨てる', size: 24 },
+    },
+    { // index: 8
+      damages: [ 135, 315 ],
+      characters: {
+        1: { angle: 240, coef: 0.7 },
+        2: { angle: 235, coef: 0.8 },
+        3: { angle: 225, coef: 0.7 },
+        4: { angle: 220, coef: 0.8 },
+        5: { angle:  85, coef: 0.7 },
+        6: { angle:  70, coef: 0.8 },
+        7: { angle: 265, coef: 0.7 },
+        8: { angle: 250, coef: 0.8 },
+      },
+      message: { text: 'このあと中央にAoEがきてすぐに⑦⑧チェイサー', size: 22 },
+    },
+    { // index: 9
+      damages: [ 'center' ],
+      characters: {
+        1: { angle: 240, coef: 0.7 },
+        2: { angle: 235, coef: 0.8 },
+        3: { angle: 225, coef: 0.7 },
+        4: { angle: 220, coef: 0.8 },
+        5: { angle:  85, coef: 0.7 },
+        6: { angle:  70, coef: 0.8 },
+        7: { angle: 310, coef: 0.7 },
+        8: { angle: 295, coef: 0.8 },
+      },
+      enemy: 303,
+      message: { text: '最後のチェイサーが終わったら中央集合', size: 26 },
+    },
+  ]
+
+  Object.keys(context).forEach(key => {
+    const cxt = context[key]
+
+    cxt.resetStyle = () => {
+      cxt.restore()
+      cxt.save()
+    }
+
+    cxt.clear = () => {
+      cxt.clearRect(0, 0, cxt.canvas.width, cxt.canvas.height)
+    }
+
+    cxt.moveToAngle = (angle, coef, baseX = pos.center.x, baseY = pos.center.y) => {
+      const anglePos = calcAngleToPos(angle, coef, baseX, baseY)
+      cxt.moveTo(anglePos.x, anglePos.y)
+      return anglePos
+    }
+
+    cxt.lineToAngle = (angle, coef, baseX = pos.center.x, baseY = pos.center.y) => {
+      const anglePos = calcAngleToPos(angle, coef, baseX, baseY)
+      cxt.lineTo(anglePos.x, anglePos.y)
+      return anglePos
+    }
+
+    cxt.strokeLineAngle = (startAngle, endAngle, coef) => {
+      context.base.beginPath()
+      context.base.moveToAngle(startAngle, coef)
+      context.base.lineToAngle(endAngle, coef)
+      context.base.stroke()
+    }
+  })
+
+  const renderDefaultDisplay = () => {
+    context.base.clear()
+    context.main.clear()
+    context.main.resetStyle()
+    context.main.font = '48px メイリオ'
+    context.main.textAlign = 'center'
+    context.main.textBaseline = 'middle'
+    context.main.fillStyle = 'white'
+    context.main.fillText('Push START', pos.center.x, pos.center.y)
+  }
+
+  const renderBase = () => {
+    context.base.beginPath()
+    context.base.arc(pos.center.x, pos.center.y, (pos.bottom - pos.top) / 2, 0, 2 * Math.PI)
+    context.base.fillStyle = 'rgb(100, 100, 100)'
+    context.base.fill()
+    context.base.lineWidth = 4
+    context.base.strokeStyle = 'rgb(230, 230, 230)'
+    context.base.stroke()
+    context.base.lineWidth = 2
+    context.base.strokeLineAngle(0, 180, 1)
+    context.base.strokeLineAngle(45, 225, 1)
+    context.base.strokeLineAngle(90, 270, 1)
+    context.base.strokeLineAngle(135, 315, 1)
+  }
+
+  const renderDamageArea = (angle, coef) => {
+    const anglePos = calcAngleToPos(angle, coef)
+    const areaRadius = (pos.bottom - pos.top) * 2/9
+
+    context.main.resetStyle()
+    context.main.beginPath()
+    context.main.shadowBlur = 3
+    context.main.shadowColor = 'red'
+    context.main.arc(anglePos.x, anglePos.y, areaRadius, 0, 2 * Math.PI)
+    context.main.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    context.main.fill()
+    context.main.lineWidth = 3
+    context.main.strokeStyle = 'rgba(255, 0, 0, 0.5)'
+    context.main.stroke()
+
+    context.main.resetStyle()
+    context.main.beginPath()
+    const gradientRadius = areaRadius * 4 / 5
+    context.main.arc(anglePos.x, anglePos.y, gradientRadius, 0, 2 * Math.PI)
+    const gradient = context.main.createRadialGradient(
+      anglePos.x, anglePos.y, gradientRadius / 15,
+      anglePos.x, anglePos.y, gradientRadius,
+    )
+    gradient.addColorStop(0.0, 'rgba(255, 255, 100, 0.6)')
+    gradient.addColorStop(0.3, 'rgba(255, 0, 0, 0.5)')
+    gradient.addColorStop(1.0, 'rgba(100, 0, 0, 0)')
+    context.main.fillStyle = gradient
+    context.main.fill()
+  }
+
+  const renderCharacter = (text, x, y, color) => {
+    switch (text) {
+      case 1:
+      case 2:
+        color = 'red'
+        break
+    }
+
+    context.main.resetStyle()
+    context.main.beginPath()
+    context.main.shadowBlur = 5
+    context.main.shadowColor = color
+    context.main.arc(x, y, 12, 0, 2 * Math.PI)
+    context.main.fillStyle = 'rgba(0, 0, 0, 0.5)'
+    context.main.fill()
+    context.main.lineWidth = 2
+    context.main.strokeStyle = 'white'
+    context.main.stroke()
+
+    context.main.resetStyle()
+    context.main.font = '16px メイリオ'
+    context.main.textAlign = 'center'
+    context.main.textBaseline = 'middle'
+    context.main.fillStyle = 'white'
+    context.main.fillText(text, x, y)
+  }
+
+  const renderPlayer = (number, x, y) => {
+    let color = 'rgb(255, 180, 0)'
+
+    switch (number) {
+      case '1':
+      case '2':
+        color = 'yellow'
+        break
+      case '3':
+      case '4':
+        color = 'green'
+        break
+      case '5':
+      case '6':
+        color = 'blue'
+        break
+      case '7':
+      case '8':
+        color = 'purple'
+        break
+    }
+
+    renderCharacter(number, x, y, color)
+  }
+
+  const renderEnemy = (angle) => {
+    const coef = 0.74
+    let basePos = calcAngleToPos(angle, coef), anglePos = null, tmpAngle = null
+
+    renderCharacter('E', basePos.x, basePos.y, 'red')
+
+    const width = 0.5, height = 3
+    context.main.resetStyle()
+    context.main.beginPath()
+    context.main.shadowBlur = 3
+    context.main.shadowColor = 'orange'
+    context.main.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    context.main.lineWidth = 3
+    context.main.strokeStyle = 'rgba(255, 200, 0, 0.5)'
+    anglePos = calcAngleToPos(tmpAngle = angle - 70, 0.07, basePos.x, basePos.y)
+    anglePos = context.main.moveToAngle(tmpAngle -= 90, width / 2, anglePos.x, anglePos.y)
+    anglePos = context.main.lineToAngle(tmpAngle += 90, height, anglePos.x, anglePos.y)
+    anglePos = context.main.lineToAngle(tmpAngle += 90, width, anglePos.x, anglePos.y)
+    anglePos = context.main.lineToAngle(tmpAngle += 90, height, anglePos.x, anglePos.y)
+    anglePos = context.main.lineToAngle(tmpAngle += 90, width, anglePos.x, anglePos.y)
+    context.main.fill()
+    context.main.stroke()
+
+    const areaRadius = (pos.bottom - pos.top) * 2/3
+    const damageAngle = 60
+    context.main.beginPath()
+    anglePos = calcAngleToPos(tmpAngle = angle + 110, 0.07, basePos.x, basePos.y)
+    context.main.lineTo(anglePos.x, anglePos.y)
+    tmpAngle = Math.PI / 180 * (tmpAngle - 90 - damageAngle / 2)
+    context.main.arc(anglePos.x, anglePos.y, areaRadius, tmpAngle, tmpAngle + Math.PI / 180 * damageAngle)
+    context.main.lineTo(anglePos.x, anglePos.y)
+    context.main.fill()
+    context.main.stroke()
+  }
+
+  const renderCount = (count) => {
+    context.main.resetStyle()
+    context.main.font = '12px メイリオ'
+    context.main.textAlign = 'left'
+    context.main.textBaseline = 'top'
+    context.main.fillStyle = 'white'
+    context.main.fillText(`count: ${count}`, 5, 5)
+  }
+
+  const renderMessage = (message) => {
+    context.message.resetStyle()
+    context.message.font = `${message.size}px メイリオ`
+    context.message.textAlign = 'center'
+    context.message.textBaseline = 'middle'
+    context.message.fillStyle = 'black'
+    context.message.fillText(message.text, context.message.canvas.width / 2, context.message.canvas.height / 2)
+  }
+
+  const renderMain = (index) => {
+    const anime = animations[index]
+
+    context.main.clear()
+    context.message.clear()
+
+    anime.damages.forEach(angle => {
+      if (angle === 'center') {
+        renderDamageArea(0, 0)
+      } else {
+        renderDamageArea(angle, 2/3)
+      }
+    })
+
+    Object.keys(anime.characters).forEach(charaNumber => {
+      const chara = anime.characters[charaNumber]
+
+      const anglePos = calcAngleToPos(chara.angle, chara.coef)
+      renderPlayer(charaNumber, anglePos.x, anglePos.y)
+    })
+
+    if (anime.enemy) {
+      renderEnemy(anime.enemy)
+    }
+
+    if (anime.message) {
+      renderMessage(anime.message)
+    }
+
+    renderCount(index + 1)
+  }
+
+  const loopStock = []
+  const loop = (index = 0) => {
+    if (index >= animations.length) {
+      renderDefaultDisplay()
+      return
+    }
+
+    loopStock.push(index)
+    renderMain(index)
+
+    setTimeout(() => {
+      loopStock.pop()
+      if (loopStock.length > 0) return
+      window.requestAnimationFrame(() => { loop(index + 1) })
+    }, 1000)
+  }
+
+  renderDefaultDisplay()
+
+  let animationIndex = 0, isStarted = false
+  const button = {
+    start: document.getElementById('button-start'),
+    next: document.getElementById('button-next'),
+    prev: document.getElementById('button-prev'),
+  }
+  const animationAction = {
+    start: () => {
+      isStarted = true
+
+      renderBase()
+      renderMain(animationIndex)
+
+      button.start.style.display = 'none'
+      button.next.style.display = 'inline-block'
+      button.prev.style.display = 'inline-block'
+    },
+    next: () => {
+      animationIndex += 1
+      if (animationIndex >= animations.length) animationIndex -= animations.length
+      renderMain(animationIndex)
+    },
+    prev: () => {
+      animationIndex -= 1
+      if (animationIndex < 0) animationIndex += animations.length
+      renderMain(animationIndex)
+    },
+  }
+
+  Object.keys(button).forEach(key => {
+    const btn = button[key]
+    const action = animationAction[key]
+    btn.addEventListener('click', action)
+  })
+
+  document.addEventListener('keydown', e => {
+    if (isStarted) {
+      if ([13, 32, 33, 39, 40].includes(e.keyCode)) {
+        animationAction.next()
+      }
+      if ([8, 34, 37, 38].includes(e.keyCode)) {
+        animationAction.prev()
+      }
+    } else {
+      if ([13, 32].includes(e.keyCode)) {
+        animationAction.start()
+      }
+    }
+  })
+}
+</script>
+</head>
+
+<body>
+<h1>FFXIV 絶アレキサンダー サイコロフェーズ</h1>
+<div class="buttons">
+  <button id="button-start">START</button>
+  <button id="button-prev">PREV</button>
+  <button id="button-next">NEXT</button>
+</div>
+<div class="canvases">
+  <canvas id="canvas-base" width="500" height="500"></canvas>
+  <canvas id="canvas-main" width="500" height="500"></canvas>
+  <canvas id="canvas-message" width="500" height="100"></canvas>
+</div>
+</body>
+</html>
