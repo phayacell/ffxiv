@@ -6,7 +6,7 @@
     <title>FFXIV 絶アレキサンダー サイコロフェーズ</title>
     <meta name="robots" content="noindex, nofollow">
     <meta name="googlebot" content="noindex, nofollow">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.css">
@@ -582,6 +582,20 @@
           if ([13, 32].includes(e.keyCode)) {
             animationAction.start()
           }
+        }
+      })
+
+      context.main.canvas.addEventListener('touchstart', e => {
+        if (isStarted) {
+          const touch = e.touches[0]
+
+          if (pos.center.x <= touch.pageX) {
+            animationAction.next()
+          } else {
+            animationAction.prev()
+          }
+        } else {
+          animationAction.start()
         }
       })
     }
