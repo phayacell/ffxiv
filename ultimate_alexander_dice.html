@@ -12,6 +12,10 @@
     text-align: center;
   }
 
+  .conditions {
+    margin-bottom: 1em;
+  }
+
   .canvases {
     width: 500px;
     height: 600px;
@@ -47,6 +51,9 @@ window.onload = () => {
     main: document.getElementById('canvas-main').getContext('2d'),
     message: document.getElementById('canvas-message').getContext('2d'),
   }
+  const condition = {
+    startAngle: document.getElementById('condition-start-angle'),
+  }
 
   const margin = 30
   const pos = {
@@ -60,12 +67,16 @@ window.onload = () => {
   const calcAngleToPos = (angle, coef, baseX = pos.center.x, baseY = pos.center.y) => {
     const radius = (pos.bottom - pos.top) / 2
     const distance = radius * coef
-    const a = Math.PI / 180 * (angle - 90)
+    const a = adjustAngle(angle)
 
     return {
       x: baseX + distance * Math.cos(a),
       y: baseY + distance * Math.sin(a),
     }
+  }
+
+  const adjustAngle = (angle) => {
+    return Math.PI / 180 * (parseInt(condition.startAngle.value, 10) + angle - 90)
   }
 
   const animations = [
@@ -330,9 +341,10 @@ window.onload = () => {
     context.main.fillText(text, x, y)
   }
 
-  const renderPlayer = (number, x, y) => {
-    let color = 'rgb(255, 180, 0)'
+  const renderPlayer = (number, character) => {
+    const anglePos = calcAngleToPos(character.angle, character.coef)
 
+    let color = 'rgb(255, 180, 0)'
     switch (number) {
       case '1':
       case '2':
@@ -352,12 +364,13 @@ window.onload = () => {
         break
     }
 
-    renderCharacter(number, x, y, color)
+    renderCharacter(number, anglePos.x, anglePos.y, color)
   }
 
   const renderEnemy = (angle) => {
     const coef = 0.74
-    let basePos = calcAngleToPos(angle, coef), anglePos = null, tmpAngle = null
+    const basePos = calcAngleToPos(angle, coef)
+    let anglePos = null, tmpAngle = null
 
     renderCharacter('E', basePos.x, basePos.y, 'red')
 
@@ -383,7 +396,7 @@ window.onload = () => {
     context.main.beginPath()
     anglePos = calcAngleToPos(tmpAngle = angle + 110, 0.07, basePos.x, basePos.y)
     context.main.lineTo(anglePos.x, anglePos.y)
-    tmpAngle = Math.PI / 180 * (tmpAngle - 90 - damageAngle / 2)
+    tmpAngle = adjustAngle(tmpAngle - damageAngle / 2)
     context.main.arc(anglePos.x, anglePos.y, areaRadius, tmpAngle, tmpAngle + Math.PI / 180 * damageAngle)
     context.main.lineTo(anglePos.x, anglePos.y)
     context.main.fill()
@@ -422,11 +435,8 @@ window.onload = () => {
       }
     })
 
-    Object.keys(anime.characters).forEach(charaNumber => {
-      const chara = anime.characters[charaNumber]
-
-      const anglePos = calcAngleToPos(chara.angle, chara.coef)
-      renderPlayer(charaNumber, anglePos.x, anglePos.y)
+    Object.keys(anime.characters).forEach(number => {
+      renderPlayer(number, anime.characters[number])
     })
 
     if (anime.enemy) {
@@ -486,7 +496,15 @@ window.onload = () => {
       if (animationIndex < 0) animationIndex += animations.length
       renderMain(animationIndex)
     },
+    reload: () => {
+      renderMain(animationIndex)
+    },
   }
+
+  condition.startAngle.addEventListener('change', () => {
+    if (!isStarted) return
+    animationAction.reload()
+  })
 
   Object.keys(button).forEach(key => {
     const btn = button[key]
@@ -495,6 +513,8 @@ window.onload = () => {
   })
 
   document.addEventListener('keydown', e => {
+    if (e.target == condition.startAngle) return
+
     if (isStarted) {
       if ([13, 32, 33, 39, 40].includes(e.keyCode)) {
         animationAction.next()
@@ -514,6 +534,14 @@ window.onload = () => {
 
 <body>
 <h1>FFXIV 絶アレキサンダー サイコロフェーズ</h1>
+<div class="conditions">
+  <select id="condition-start-angle">
+    <option value="0">東・西</option>
+    <option value="45">北東・南西</option>
+    <option value="90">北・南</option>
+    <option value="135">北西・南東</option>
+  </select>
+</div>
 <div class="buttons">
   <button id="button-start">START</button>
   <button id="button-prev">PREV</button>
