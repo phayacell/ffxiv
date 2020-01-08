@@ -31,14 +31,19 @@
     .action-group {
       margin-left: auto;
       margin-right: auto;
-      max-width: 400px;
+      max-width: 300px;
     }
-
     .action-group .button {
       width: 100%;
     }
+    #button-prev {
+      text-align: left;
+    }
+    #button-next {
+      text-align: right;
+    }
 
-    .canvase-group {
+    .canvas-group {
       width: 500px;
       height: 600px;
       margin: .5em auto;
@@ -46,8 +51,9 @@
       border: 2px solid black;
       box-sizing: content-box;
       background-color: rgb(50, 50, 50);
+      visibility: hidden;
     }
-    .canvase-group canvas {
+    .canvas-group canvas {
       position: absolute;
       top: 0;
       left: 0;
@@ -64,29 +70,20 @@
     .display-none {
       display: none !important;
     }
+
+    .row {
+      flex-direction: row;
+      margin-left: -1.0rem;
+      width: calc(100% + 2.0rem);
+    }
+    .row .column {
+      margin-bottom: inherit;
+      padding: 0 1.0rem;
+    }
     </style>
 
     <script type="text/javascript">
     window.onload = () => {
-      const context = {
-        base: document.getElementById('canvas-base').getContext('2d'),
-        main: document.getElementById('canvas-main').getContext('2d'),
-        message: document.getElementById('canvas-message').getContext('2d'),
-      }
-      const condition = {
-        startAngle: document.getElementById('condition-start-angle'),
-      }
-
-      const fontFamily = 'Roboto'
-      const margin = 30
-      const pos = {
-        left: margin,
-        top: margin,
-        right: context.main.canvas.width - margin,
-        bottom: context.main.canvas.height - margin,
-        center: { x: context.main.canvas.width / 2, y: context.main.canvas.height / 2 },
-      }
-
       const calcAngleToPos = (angle, coef, baseX = pos.center.x, baseY = pos.center.y) => {
         const radius = (pos.bottom - pos.top) / 2
         const distance = radius * coef
@@ -98,8 +95,51 @@
         }
       }
 
-      const adjustAngle = (angle) => {
+      const adjustAngle = angle => {
         return Math.PI / 180 * (parseInt(condition.startAngle.value, 10) + angle - 90)
+      }
+
+      const adjustSize = size => {
+        return context.main.canvas.width / 500 * size
+      }
+
+      const adjustFont = size => {
+        return `${adjustSize(size)}px Roboto`
+      }
+
+      const canvasGroup = document.getElementsByClassName('canvas-group')[0]
+      const context = {
+        base: document.getElementById('canvas-base').getContext('2d'),
+        main: document.getElementById('canvas-main').getContext('2d'),
+        message: document.getElementById('canvas-message').getContext('2d'),
+      }
+      const condition = {
+        startAngle: document.getElementById('condition-start-angle'),
+      }
+
+      if (window.innerWidth < 600) {
+        const size = 300
+
+        canvasGroup.style.width = `${size}px`
+        canvasGroup.style.height = `${size + 100}px`
+        context.message.canvas.style.top = `${size}px`
+
+        Object.keys(context).forEach(key => {
+          const cxt = context[key]
+
+          cxt.canvas.width = size
+          if (key != 'message') cxt.canvas.height = size
+        })
+      }
+      canvasGroup.style.visibility = 'visible'
+
+      const margin = adjustSize(30)
+      const pos = {
+        left: margin,
+        top: margin,
+        right: context.main.canvas.width - margin,
+        bottom: context.main.canvas.height - margin,
+        center: { x: context.main.canvas.width / 2, y: context.main.canvas.height / 2 },
       }
 
       const animations = [
@@ -285,7 +325,7 @@
         context.base.clear()
         context.main.clear()
         context.main.resetStyle()
-        context.main.font = `48px ${fontFamily}`
+        context.main.font = adjustFont(48)
         context.main.textAlign = 'center'
         context.main.textBaseline = 'middle'
         context.main.fillStyle = 'white'
@@ -338,18 +378,11 @@
       }
 
       const renderCharacter = (text, x, y, color) => {
-        switch (text) {
-          case 1:
-          case 2:
-            color = 'red'
-            break
-        }
-
         context.main.resetStyle()
         context.main.beginPath()
         context.main.shadowBlur = 5
         context.main.shadowColor = color
-        context.main.arc(x, y, 12, 0, 2 * Math.PI)
+        context.main.arc(x, y, adjustSize(12), 0, 2 * Math.PI)
         context.main.fillStyle = 'rgba(0, 0, 0, 0.5)'
         context.main.fill()
         context.main.lineWidth = 2
@@ -357,7 +390,7 @@
         context.main.stroke()
 
         context.main.resetStyle()
-        context.main.font = `16px ${fontFamily}`
+        context.main.font = adjustFont(16)
         context.main.textAlign = 'center'
         context.main.textBaseline = 'middle'
         context.main.fillStyle = 'white'
@@ -428,7 +461,7 @@
 
       const renderCount = (count) => {
         context.main.resetStyle()
-        context.main.font = `14px ${fontFamily}`
+        context.main.font = adjustFont(18)
         context.main.textAlign = 'left'
         context.main.textBaseline = 'top'
         context.main.fillStyle = 'white'
@@ -437,7 +470,7 @@
 
       const renderMessage = (message) => {
         context.message.resetStyle()
-        context.message.font = `${message.size}px ${fontFamily}`
+        context.message.font = adjustFont(message.size)
         context.message.textAlign = 'center'
         context.message.textBaseline = 'middle'
         context.message.fillStyle = 'black'
@@ -586,7 +619,7 @@
             </div>
           </div>
         </div>
-        <div class="canvase-group">
+        <div class="canvas-group">
           <canvas id="canvas-base" width="500" height="500"></canvas>
           <canvas id="canvas-main" width="500" height="500"></canvas>
           <canvas id="canvas-message" width="500" height="100"></canvas>
