@@ -63,7 +63,6 @@
     #canvas-message {
       z-index: 3;
       top: 500px;
-      height: 100px;
       background-color: whitesmoke;
     }
 
@@ -84,6 +83,17 @@
 
     <script type="text/javascript">
     window.onload = () => {
+      const canvasGroup = document.getElementsByClassName('canvas-group')[0]
+      const context = {
+        base: document.getElementById('canvas-base').getContext('2d'),
+        main: document.getElementById('canvas-main').getContext('2d'),
+        message: document.getElementById('canvas-message').getContext('2d'),
+      }
+      const condition = {
+        startAngle: document.getElementById('condition-start-angle'),
+      }
+      const defaultSize = context.main.canvas.width
+
       const calcAngleToPos = (angle, coef, baseX = pos.center.x, baseY = pos.center.y) => {
         const radius = (pos.bottom - pos.top) / 2
         const distance = radius * coef
@@ -100,35 +110,25 @@
       }
 
       const adjustSize = size => {
-        return context.main.canvas.width / 500 * size
+        return context.main.canvas.width / defaultSize * size
       }
 
       const adjustFont = size => {
         return `${adjustSize(size)}px Roboto`
       }
 
-      const canvasGroup = document.getElementsByClassName('canvas-group')[0]
-      const context = {
-        base: document.getElementById('canvas-base').getContext('2d'),
-        main: document.getElementById('canvas-main').getContext('2d'),
-        message: document.getElementById('canvas-message').getContext('2d'),
-      }
-      const condition = {
-        startAngle: document.getElementById('condition-start-angle'),
-      }
-
-      if (window.innerWidth < 600) {
+      if (window.innerWidth < defaultSize + 100) {
         const size = 300
+        const messageHeight = 60
 
         canvasGroup.style.width = `${size}px`
-        canvasGroup.style.height = `${size + 100}px`
+        canvasGroup.style.height = `${size + messageHeight}px`
         context.message.canvas.style.top = `${size}px`
 
         Object.keys(context).forEach(key => {
           const cxt = context[key]
-
           cxt.canvas.width = size
-          if (key != 'message') cxt.canvas.height = size
+          cxt.canvas.height = key == 'message' ? messageHeight : size
         })
       }
       canvasGroup.style.visibility = 'visible'
@@ -337,10 +337,10 @@
         context.base.arc(pos.center.x, pos.center.y, (pos.bottom - pos.top) / 2, 0, 2 * Math.PI)
         context.base.fillStyle = 'rgb(100, 100, 100)'
         context.base.fill()
-        context.base.lineWidth = 4
+        context.base.lineWidth = adjustSize(4)
         context.base.strokeStyle = 'rgb(230, 230, 230)'
         context.base.stroke()
-        context.base.lineWidth = 2
+        context.base.lineWidth = adjustSize(2)
         context.base.strokeLineAngle(0, 180, 1)
         context.base.strokeLineAngle(45, 225, 1)
         context.base.strokeLineAngle(90, 270, 1)
@@ -353,12 +353,12 @@
 
         context.main.resetStyle()
         context.main.beginPath()
-        context.main.shadowBlur = 3
+        context.main.shadowBlur = adjustSize(3)
         context.main.shadowColor = 'red'
         context.main.arc(anglePos.x, anglePos.y, areaRadius, 0, 2 * Math.PI)
         context.main.fillStyle = 'rgba(0, 0, 0, 0.3)'
         context.main.fill()
-        context.main.lineWidth = 3
+        context.main.lineWidth = adjustSize(3)
         context.main.strokeStyle = 'rgba(255, 0, 0, 0.5)'
         context.main.stroke()
 
@@ -380,12 +380,12 @@
       const renderCharacter = (text, x, y, color) => {
         context.main.resetStyle()
         context.main.beginPath()
-        context.main.shadowBlur = 5
+        context.main.shadowBlur = adjustSize(5)
         context.main.shadowColor = color
         context.main.arc(x, y, adjustSize(12), 0, 2 * Math.PI)
         context.main.fillStyle = 'rgba(0, 0, 0, 0.5)'
         context.main.fill()
-        context.main.lineWidth = 2
+        context.main.lineWidth = adjustSize(2)
         context.main.strokeStyle = 'white'
         context.main.stroke()
 
@@ -394,7 +394,7 @@
         context.main.textAlign = 'center'
         context.main.textBaseline = 'middle'
         context.main.fillStyle = 'white'
-        context.main.fillText(text, x, y + 2)
+        context.main.fillText(text, x, adjustSize(2) + y)
       }
 
       const renderPlayer = (number, character) => {
@@ -433,10 +433,10 @@
         const width = 0.5, height = 3
         context.main.resetStyle()
         context.main.beginPath()
-        context.main.shadowBlur = 3
+        context.main.shadowBlur = adjustSize(3)
         context.main.shadowColor = 'orange'
         context.main.fillStyle = 'rgba(0, 0, 0, 0.3)'
-        context.main.lineWidth = 3
+        context.main.lineWidth = adjustSize(3)
         context.main.strokeStyle = 'rgba(255, 200, 0, 0.5)'
         anglePos = calcAngleToPos(tmpAngle = angle - 70, 0.07, basePos.x, basePos.y)
         anglePos = context.main.moveToAngle(tmpAngle -= 90, width / 2, anglePos.x, anglePos.y)
@@ -461,11 +461,11 @@
 
       const renderCount = (count) => {
         context.main.resetStyle()
-        context.main.font = adjustFont(18)
+        context.main.font = adjustFont(20)
         context.main.textAlign = 'left'
         context.main.textBaseline = 'top'
         context.main.fillStyle = 'white'
-        context.main.fillText(`count: ${count}`, 5, 5)
+        context.main.fillText(`count: ${count}`, adjustSize(10), adjustSize(10))
       }
 
       const renderMessage = (message) => {
